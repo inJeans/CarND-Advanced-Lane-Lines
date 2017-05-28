@@ -186,14 +186,14 @@ def warp_perspective(image):
     # src = np.float32([[496,434], [716,434], [300,567], [924,567]])
     # dst = np.float32([[100,600], [image.shape[0]-100,600], [100,image.shape[1]], [image.shape[0]-100,image.shape[1]]])
     # Project video
-    # src = np.float32([[493,541], [857,541], [347,665], [1102,665]])
-    # dst = np.float32([[100,1100], [image.shape[0]-100,1100], [100,image.shape[1]], [image.shape[0]-100,image.shape[1]]])
+    src = np.float32([[493,541], [857,541], [347,665], [1102,665]])
+    dst = np.float32([[100,900], [image.shape[0]-100,900], [100,image.shape[1]], [image.shape[0]-100,image.shape[1]]])
 #     # Challenge video
     # src = np.float32([[466,584], [909,584], [351,667], [1046,667]])
     # dst = np.float32([[100,1100], [image.shape[0]-100,1100], [100,image.shape[1]], [image.shape[0]-100,image.shape[1]]])
 #     # Harder challenge video
-    src = np.float32([[480,515], [763,515], [268,664], [956,664]])
-    dst = np.float32([[100,600], [image.shape[0]-100,600], [100,image.shape[1]], [image.shape[0]-100,image.shape[1]]])
+    # src = np.float32([[480,515], [763,515], [268,664], [956,664]])
+    # dst = np.float32([[100,600], [image.shape[0]-100,600], [100,image.shape[1]], [image.shape[0]-100,image.shape[1]]])
     
     M = cv2.getPerspectiveTransform(src,
                                     dst)

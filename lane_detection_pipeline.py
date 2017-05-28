@@ -32,11 +32,11 @@ UNDISTORTED_DIR = 'undistorted_images'
 if not os.path.isdir(UNDISTORTED_DIR):
     os.mkdir(UNDISTORTED_DIR)
 
-# CAP = cv2.VideoCapture('project_video.mp4')
+CAP = cv2.VideoCapture('project_video.mp4')
 # CAP = cv2.VideoCapture('challenge_video.mp4')
-CAP = cv2.VideoCapture('harder_challenge_video.mp4')
+# CAP = cv2.VideoCapture('harder_challenge_video.mp4')
 
-ALPHA = 0.8
+ALPHA = 0.3
 LEFT_LINE = Line(ALPHA,
                  X_M_PER_PIX,
                  Y_M_PER_PIX)
@@ -59,13 +59,13 @@ def main():
                          rvecs,
                          tvecs)
 
-    # animation = VideoClip(make_frame, duration=50)
+    animation = VideoClip(make_frame, duration=50)
     # animation = VideoClip(make_frame, duration=16)
-    animation = VideoClip(make_frame, duration=47)
+    # animation = VideoClip(make_frame, duration=47)
     # export as a video file
-    # animation.write_videofile("project_animation.mp4", fps=25)
+    animation.write_videofile("project_animation.mp4", fps=25)
     # animation.write_videofile("challenge_animation.mp4", fps=25)
-    animation.write_videofile("harder_challenge_animation.mp4", fps=25)
+    # animation.write_videofile("harder_challenge_animation.mp4", fps=25)
 
     CAP.release()
 
@@ -76,10 +76,8 @@ def make_frame(t):
 
         plot_image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         warped_image, Minv = warp_perspective(plot_image)
-#         cv2.imwrite('test-frame-{}.jpg'.format(t*100), frame)
         binary_warped = detect_lines(warped_image)
-#         plt.imshow(binary_warped)
-#         plt.show()
+
         fit_lines(binary_warped,
                   LEFT_LINE,
                   RIGHT_LINE)
@@ -89,8 +87,6 @@ def make_frame(t):
                                          LEFT_LINE,
                                          RIGHT_LINE,
                                          Minv)
-#         plt.imshow(detected_lanes)
-#         plt.show()
         
         return detected_lanes
 

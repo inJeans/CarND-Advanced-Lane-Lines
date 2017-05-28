@@ -19,13 +19,13 @@ The goals / steps of this project are the following:
 
 [//]: # (Image References)
 
-[image1]: ./examples/undistort_output.png "Undistorted"
+[image1]: ./output_images/undistort.png "Undistorted"
 [image2]: ./test_images/test1.jpg "Road Transformed"
-[image3]: ./examples/binary_combo_example.jpg "Binary Example"
-[image4]: ./examples/warped_straight_lines.jpg "Warp Example"
+[image3]: ./output_images/thresholded.png "Binary Example"
+[image4]: ./output_images/warped.png "Warp Example"
 [image5]: ./examples/color_fit_lines.jpg "Fit Visual"
-[image6]: ./examples/example_output.jpg "Output"
-[video1]: ./project_video.mp4 "Video"
+[image6]: ./output_images/example.png "Output"
+[video1]: ./project_animation.mp4 "Video"
 
 ## [Rubric](https://review.udacity.com/#!/rubrics/571/view) Points
 
@@ -43,11 +43,11 @@ You're reading it!
 
 #### 1. Briefly state how you computed the camera matrix and distortion coefficients. Provide an example of a distortion corrected calibration image.
 
-The code for this step is contained in the first code cell of the IPython notebook located in "./examples/example.ipynb" (or in lines # through # of the file called `some_file.py`).  
+Using OpenCV's `findChessboardCorners` I was able to build a list of `objpoints` and `imgpoints` by iterating through the directory of given chessboard images. I further refined the location of the chessborad corners using `cornerSubPix`. All the images in the test directory were able to be used by programatically reducing the number of corners I would search for when `findChessboardCorners` returned `False`. Once I had built these lists of points I pushed them through the `calibrateCamera` function to get the camera calibration and distortion coefficients.
 
-I start by preparing "object points", which will be the (x, y, z) coordinates of the chessboard corners in the world. Here I am assuming the chessboard is fixed on the (x, y) plane at z=0, such that the object points are the same for each calibration image.  Thus, `objp` is just a replicated array of coordinates, and `objpoints` will be appended with a copy of it every time I successfully detect all chessboard corners in a test image.  `imgpoints` will be appended with the (x, y) pixel position of each of the corners in the image plane with each successful chessboard detection.  
+All of the heavy lifting for the camera calibration is (funilly enough) handled by my `calibrate_camera` function located in the `image_correction.py` file.
 
-I then used the output `objpoints` and `imgpoints` to compute the camera calibration and distortion coefficients using the `cv2.calibrateCamera()` function.  I applied this distortion correction to the test image using the `cv2.undistort()` function and obtained this result: 
+Images could then be undistorted by first refining the camera matrix with `getOptimalNewCameraMatrix` and then using the `undistort` function. A resulting example is shown below.
 
 ![alt text][image1]
 
@@ -60,35 +60,22 @@ To demonstrate this step, I will describe how I apply the distortion correction 
 
 #### 2. Describe how (and identify where in your code) you used color transforms, gradients or other methods to create a thresholded binary image.  Provide an example of a binary image result.
 
-I used a combination of color and gradient thresholds to generate a binary image (thresholding steps at lines # through # in `another_file.py`).  Here's an example of my output for this step.  (note: this is not actually from one of the test images)
+I used a combination of color and gradient thresholds to generate a binary image (the code for which is in `image_preprocessing`).  Here's an example of my output for this step.
 
 ![alt text][image3]
 
+For the colour thresholds I apply both a yellow and a white filter in the HSV colour space, I also apply a saturation threshold in the HLS colour space. I `OR` the two colour thresholds together and then `AND` the result of that with the saturation threshold. So I only require a line to be yellow or white. The gradients are thresholded i the `x` and `y` directions (which I `OR` together) then this result is `AND`-ed with a magnitude threshold. The colour and gradient thresholds are then `OR`-ed together.
+
 #### 3. Describe how (and identify where in your code) you performed a perspective transform and provide an example of a transformed image.
 
-The code for my perspective transform includes a function called `warper()`, which appears in lines 1 through 8 in the file `example.py` (output_images/examples/example.py) (or, for example, in the 3rd code cell of the IPython notebook).  The `warper()` function takes as inputs an image (`img`), as well as source (`src`) and destination (`dst`) points.  I chose the hardcode the source and destination points in the following manner:
-
-```python
-src = np.float32(
-    [[(img_size[0] / 2) - 55, img_size[1] / 2 + 100],
-    [((img_size[0] / 6) - 10), img_size[1]],
-    [(img_size[0] * 5 / 6) + 60, img_size[1]],
-    [(img_size[0] / 2 + 55), img_size[1] / 2 + 100]])
-dst = np.float32(
-    [[(img_size[0] / 4), 0],
-    [(img_size[0] / 4), img_size[1]],
-    [(img_size[0] * 3 / 4), img_size[1]],
-    [(img_size[0] * 3 / 4), 0]])
-```
-
-This resulted in the following source and destination points:
+In the `image_correction.py` file there is a function `warp_perspective` that transforms the image into the "birdseye" perspective. I found it was necessary to hard code the `src` and `dst` points for each specific image source (i.e. each of the videos). I guess this is due to the relative position of the road to the camera due to hills etc. For example my `src` and `dst` points for the sample video were
 
 | Source        | Destination   | 
 |:-------------:|:-------------:| 
-| 585, 460      | 320, 0        | 
-| 203, 720      | 320, 720      |
-| 1127, 720     | 960, 720      |
-| 695, 460      | 960, 0        |
+| 493, 541      | 100, 1100     |
+| 857, 541      | `image.shape[0]`-100, 1100      |
+| 347, 665      | 100, `image.shape[1]`      |
+| 1102,665      | `image.shape[0]`-100, `image.shape[1]`        |
 
 I verified that my perspective transform was working as expected by drawing the `src` and `dst` points onto a test image and its warped counterpart to verify that the lines appear parallel in the warped image.
 
@@ -96,17 +83,15 @@ I verified that my perspective transform was working as expected by drawing the 
 
 #### 4. Describe how (and identify where in your code) you identified lane-line pixels and fit their positions with a polynomial?
 
-Then I did some other stuff and fit my lane lines with a 2nd order polynomial kinda like this:
-
-![alt text][image5]
+To detect lane lines I used th sliding window approach. The two window that had the highest number of hot pixels (either side of the center) were said to contain the lane line. The centers of the slected windows were then used to fit a second order polynomial. The code for this can be found in `fit_lines` in the `detect_lanes.py` file.
 
 #### 5. Describe how (and identify where in your code) you calculated the radius of curvature of the lane and the position of the vehicle with respect to center.
 
-I did this in lines # through # in my code in `my_other_file.py`
+Built in to the `Line` class is a function (`calculate_curvature`) that is used to calculate the curvature of the line. Using simple calculus we are able to find the radius of curvature based on some of the derivative properties of the fitted line. There is another function inside the `Line` class (`get_line_base_pos`) that will calculate the position of the vehicle based on the two fitted lines (so this means you also need to pass the fit of the other line to the class). All it does is find the average position of the two lines at the bottom of the screen and finds the difference between this and the center (we have assumed that the camera is mounted on the center of the car).
 
 #### 6. Provide an example image of your result plotted back down onto the road such that the lane area is identified clearly.
 
-I implemented this step in lines # through # in my code in `yet_another_file.py` in the function `map_lane()`.  Here is an example of my result on a test image:
+In the pipeline this drawing and calculation step is handled by the `visualise_lanes` function in the `detect_lanes.py` function.
 
 ![alt text][image6]
 
@@ -116,7 +101,9 @@ I implemented this step in lines # through # in my code in `yet_another_file.py`
 
 #### 1. Provide a link to your final video output.  Your pipeline should perform reasonably well on the entire project video (wobbly lines are ok but no catastrophic failures that would cause the car to drive off the road!).
 
-Here's a [link to my video result](./project_video.mp4)
+Here's a [link to my video result](https://youtu.be/EhfuW00c08E)
+
+I also had a go at the [challenge_video.mp4](https://youtu.be/EZ9JD-ql8Yc) and [harder\_challenge\_video.mp4](harder_challenge_animation.mp4) videos too.
 
 ---
 
@@ -124,4 +111,10 @@ Here's a [link to my video result](./project_video.mp4)
 
 #### 1. Briefly discuss any problems / issues you faced in your implementation of this project.  Where will your pipeline likely fail?  What could you do to make it more robust?
 
-Here I'll talk about the approach I took, what techniques I used, what worked and why, where the pipeline might fail and how I might improve it if I were going to pursue this project further.  
+I don't know why but my biggest problem seemed to be the warping of the image. It just seems so manual and I feel as though there should be a better way to do it. I found that I need to recalibrate my warping for each test video, which doesn't really make sense given that all videos could, in theory, have been shot in a single trip. This would mean that a car using my algorithms would fail the moment the slope in the road changed or something bumped the camera.
+
+Determining the thresholds for the different colour channels and gradients was pretty straight forward. Figuring out the best way to combine the results from the different kinds of thresholding was interesting both from a logical perspective as well as a practical one.
+
+Even though I have used quite a few different thresholds my lane detection still doesn't appear to be as robust as it could be. It struggles a little bit with the shadow towards the end of the project video when it really should have enough to handle it well. So I am not entriely sure whta went wrong there.
+
+I didn't spend any time optimising the lane finding algorithms. So each frame is built from a full window scan, instead of using previous knowledge from the past frame. This may help in reducing the spurious flickering that can be observed in some of the difficult parts of the videos.

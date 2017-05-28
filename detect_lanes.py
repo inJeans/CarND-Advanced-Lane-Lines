@@ -51,7 +51,7 @@ def fit_lines(binary_warped,
 	          right_line):
     # Assuming you have created a warped binary image called "binary_warped"
     # Take a histogram of the bottom half of the image
-    histogram = np.sum(binary_warped[np.floor(binary_warped.shape[0]/2):,:], axis=0)
+    histogram = np.sum(binary_warped[np.floor(binary_warped.shape[0]/2).astype(np.int):,:], axis=0)
     
     # Find the peak of the left and right halves of the histogram
     # These will be the starting point for the left and right lines
@@ -111,8 +111,15 @@ def fit_lines(binary_warped,
     righty = nonzeroy[right_lane_inds] 
     
     # Fit a second order polynomial to each
-    left_fit = np.polyfit(lefty, leftx, 2)
-    right_fit = np.polyfit(righty, rightx, 2)   
+    try:
+    	left_fit = np.polyfit(lefty, leftx, 2)
+    except TypeError:
+    	left_fit = [np.array(None)]
+    try:
+    	right_fit = np.polyfit(righty, rightx, 2)   
+    except TypeError:
+    	right_fit = [np.array(None)]
+
 
     left_line.update(left_fit,
                      right_fit,
@@ -142,6 +149,7 @@ def visualise_lanes(plot_image,
     ploty = np.linspace(0, binary_warped.shape[0]-1, binary_warped.shape[0] )
     left_fitx = left_fit[0]*ploty**2 + left_fit[1]*ploty + left_fit[2]
     right_fitx = right_fit[0]*ploty**2 + right_fit[1]*ploty + right_fit[2]
+
     # Recast the x and y points into usable format for cv2.fillPoly()
     pts_left = np.array([np.transpose(np.vstack([left_fitx, ploty]))])
     pts_right = np.array([np.flipud(np.transpose(np.vstack([right_fitx, ploty])))])
@@ -154,10 +162,28 @@ def visualise_lanes(plot_image,
     newwarp = cv2.warpPerspective(color_warp, Minv, (plot_image.shape[1], plot_image.shape[0])) 
     # Combine the result with the original image
     result = cv2.addWeighted(plot_image, 1, newwarp, 0.3, 0)
-#     plt.imshow(result)
-    print("Left curvature = {0} m".format(left_line.radius_of_curvature))
-    print("Right curvature = {0} m".format(right_line.radius_of_curvature))
 
-#     plt.text(10, 40, "curvature = {:0.2f} m".format(avg_curverture), color='white', weight='bold')
+    position = 0.5 * (left_fitx[-1] + right_fitx[-1] - binary_warped.shape[1])
+    position = position * left_line.x_m_per_pix
+
+    curvature = 0.5 * (left_line.radius_of_curvature + right_line.radius_of_curvature)
+
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    result = cv2.putText(result,
+    	                 "Position = {: 8.3f} m".format(position),
+    	                 (50, plot_image.shape[0]-50), 
+    	                 font, 
+    	                 1,
+    	                 (255,255,255),
+    	                 2,
+    	                 cv2.LINE_AA)
+    result = cv2.putText(result,
+    	                 "Curvature = {:8.3f} m".format(curvature),
+    	                 (50, 50), 
+    	                 font, 
+    	                 1,
+    	                 (255,255,255),
+    	                 2,
+    	                 cv2.LINE_AA)
     
     return result

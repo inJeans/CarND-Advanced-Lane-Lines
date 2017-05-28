@@ -1,19 +1,27 @@
 import numpy as np
+import collections
 
 # Define a class to receive the characteristics of each line detection
 class Line():
     def __init__(self,
                  x_m_per_pix=1.,
                  y_m_per_pix=1.,
-                 alpha=0.5):
+                 alpha=0.5,
+                 n=5):
         # X meters per pixel
         self.x_m_per_pix = x_m_per_pix
         # Y meters per pixel
         self.y_m_per_pix = y_m_per_pix
         # Exponential averaging parameter, alpha
         self.alpha = alpha
+        self.n = n
         # Curvertaure tolerance in m
-        self.tolerance = 10
+        self.curvature_tolerance = 10.
+        # Gradient tolerance in m/m
+        self.gradient_tolerance = 5.
+        # Separation tolerance
+        self.max_separation = 750.
+        self.min_separation = 250.
         # was the line detected in the last iteration?
         self.detected = False  
         # x values of the last n fits of the line
@@ -23,9 +31,12 @@ class Line():
         #polynomial coefficients averaged over the last n iterations
         self.best_fit = np.array([0., 0., 0.])  
         #polynomial coefficients for the most recent fit
-        self.current_fit = [np.array([None])]  
+        self.current_fit = [np.array([None])] 
+        self.last_n_fits = collections.deque(maxlen=self.n)
         #radius of curvature of the line in some units
         self.radius_of_curvature = None 
+        #gradient closest to car
+        self.gradient = None
         #distance in meters of vehicle center from the line
         self.line_base_pos = None 
         #difference in fit coefficients between last and new fits
@@ -44,29 +55,78 @@ class Line():
         self.allx = allx
         self.ally = ally
 
+        ploty = np.linspace(0, image_shape[0]-1, image_shape[0])
+        y_eval = np.max(ploty) # Evaluate line properties closest to vehicle
+
         if new_fit is not None:
             self.current_fit = new_fit
-            self.radius_of_curvature = self.calculate_curvature(image_shape,
-                                                            new_fit)
-            other_curvature = self.calculate_curvature(image_shape,
+            self.radius_of_curvature = self.calculate_curvature(y_eval,
+                                                                new_fit)
+            other_curvature = self.calculate_curvature(y_eval,
                                                        other_line)
 
-            if np.abs(self.radius_of_curvature - other_curvature) / self.radius_of_curvature < self.tolerance:
+            self.gradient = self.calculate_gradient(y_eval,
+                                                    new_fit)
+            other_gradient = self.calculate_gradient(y_eval,
+                                                     other_line)
+
+            self.line_base_pos = self.get_line_base_pos(y_eval,
+                                                        new_fit)
+            other_line_base_pos = self.get_line_base_pos(y_eval,
+                                                         other_line)
+
+            # Sanity Checks
+            line_is_sane = True
+            # Check for similar radius
+            if np.abs(self.radius_of_curvature - other_curvature) / self.radius_of_curvature > self.curvature_tolerance:
+                line_is_sane = False
+                # print("Not curvature {0} || {1}".format(self.radius_of_curvature,
+                #                                            other_curvature))
+            # Check if lines are parallel
+            if np.abs(self.gradient - other_gradient) / self.gradient > self.gradient_tolerance:
+                line_is_sane = False
+                # print("Not parallel {0} || {1}".format(self.gradient,
+                #                                            other_gradient))
+            # Check lines are not too far apart
+            if np.abs(self.line_base_pos - other_line_base_pos) > self.max_separation or \
+               np.abs(self.line_base_pos - other_line_base_pos) < self.min_separation:
+                line_is_sane = False
+                # print("Not close {0} || {1}".format(self.line_base_pos,
+                #                                            other_line_base_pos))
+                # print("Sep {0}".format(np.abs(self.line_base_pos - other_line_base_pos)))
+            
+                        
+
+            if line_is_sane:
                 self.detected = True
-                self.best_fit = self.alpha * new_fit + (1.-self.alpha)*self.best_fit
-            else:
-                print("Not parallel {0} || {1}".format(self.radius_of_curvature,
-                                                       other_curvature))
+                # self.best_fit = self.alpha * new_fit + (1.-self.alpha)*self.best_fit
+                self.last_n_fits.append(new_fit)
+                self.best_fit = np.mean(self.last_n_fits, 0)
+            # else:
+                # print("Not sane {0} || {1}".format(self.radius_of_curvature,
+                #                                            other_curvature))
+
         else:
             self.detected = False
 
         return
 
+    def calculate_gradient(self,
+                           y_eval,
+                           line_fit=None):
+
+        if line_fit is None:
+            line_fit = self.best_fit
+
+        # Calculate the gradient of the curve closest to car
+        curve_gradient = 2 * line_fit[0] * y_eval + line_fit[1]
+
+        return curve_gradient
+
+
     def calculate_curvature(self,
-                            image_shape,
+                            y_eval,
                             line_fit=None):
-        ploty = np.linspace(0, image_shape[0]-1, image_shape[0])
-        y_eval = np.max(ploty)
 
         if line_fit is None:
             line_fit = self.best_fit
@@ -78,9 +138,15 @@ class Line():
 
         return curve_radius
 
-    def set_y_plot_values(self,
-                          binary_warped):
-        self.ally = np.linspace(0,
-                                binary_warped.shape[0]-1,
-                                binary_warped.shape[0])
+    def get_line_base_pos(self,
+                          y_eval,
+                          line_fit=None):
+        if line_fit is None:
+            line_fit = self.best_fit
+
+        base_pos = line_fit[0]*y_eval**2 + line_fit[1]*y_eval + line_fit[2]
+
+        return base_pos
+
+
 
