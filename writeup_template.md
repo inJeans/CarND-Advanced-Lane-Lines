@@ -103,7 +103,7 @@ In the pipeline this drawing and calculation step is handled by the `visualise_l
 
 Here's a [link to my video result](https://youtu.be/EhfuW00c08E)
 
-I also had a go at the [challenge_video.mp4](https://youtu.be/EZ9JD-ql8Yc) and [harder\_challenge\_video.mp4](harder_challenge_animation.mp4) videos too.
+I also had a go at the [challenge_video.mp4](https://youtu.be/EZ9JD-ql8Yc) and [harder\_challenge\_video.mp4](https://youtu.be/fXbLXqjm_Ec) videos too.
 
 ---
 
