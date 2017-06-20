@@ -32,9 +32,9 @@ UNDISTORTED_DIR = 'undistorted_images'
 if not os.path.isdir(UNDISTORTED_DIR):
     os.mkdir(UNDISTORTED_DIR)
 
-CAP = cv2.VideoCapture('project_video.mp4')
+# CAP = cv2.VideoCapture('project_video.mp4')
 # CAP = cv2.VideoCapture('challenge_video.mp4')
-# CAP = cv2.VideoCapture('harder_challenge_video.mp4')
+CAP = cv2.VideoCapture('harder_challenge_video.mp4')
 
 ALPHA = 0.3
 LEFT_LINE = Line(X_M_PER_PIX,
@@ -59,13 +59,13 @@ def main():
                          rvecs,
                          tvecs)
 
-    animation = VideoClip(make_frame, duration=50)
+    # animation = VideoClip(make_frame, duration=50)
     # animation = VideoClip(make_frame, duration=16)
-    # animation = VideoClip(make_frame, duration=47)
+    animation = VideoClip(make_frame, duration=47)
     # export as a video file
-    animation.write_videofile("project_animation.mp4", fps=25)
+    # animation.write_videofile("project_animation.mp4", fps=25)
     # animation.write_videofile("challenge_animation.mp4", fps=25)
-    # animation.write_videofile("harder_challenge_animation.mp4", fps=25)
+    animation.write_videofile("harder_challenge_animation.mp4", fps=25)
 
     CAP.release()
 
