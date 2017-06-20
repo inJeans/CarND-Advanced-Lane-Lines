@@ -165,12 +165,17 @@ def visualise_lanes(plot_image,
 
     position = 0.5 * (left_fitx[-1] + right_fitx[-1] - binary_warped.shape[1])
     position = position * left_line.x_m_per_pix
-
+    
+    if position > 0:
+    	relative_position = "right"
+    else:
+    	relative_position = "left"
+    position_string = "Position: {0: 8.3f} m {1} of center".format(position, relative_position)
     curvature = 0.5 * (left_line.radius_of_curvature + right_line.radius_of_curvature)
 
     font = cv2.FONT_HERSHEY_SIMPLEX
     result = cv2.putText(result,
-    	                 "Position = {: 8.3f} m".format(position),
+    	                 position_string,
     	                 (50, plot_image.shape[0]-50), 
     	                 font, 
     	                 1,

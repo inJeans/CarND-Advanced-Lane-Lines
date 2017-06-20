@@ -22,8 +22,8 @@ NX = 6
 NY = 9 
 
 # Pixel to meter conversion factors
-Y_M_PER_PIX = 30/720 # meters per pixel in y dimension
-X_M_PER_PIX = 3.7/700 # meters per pixel in x dimension
+Y_M_PER_PIX = 15./1240 # meters per pixel in y dimension
+X_M_PER_PIX = 3.7/605 # meters per pixel in x dimension
 
 # Data directories
 CALIBRATION_DIR = 'camera_cal'
@@ -37,12 +37,12 @@ CAP = cv2.VideoCapture('project_video.mp4')
 # CAP = cv2.VideoCapture('harder_challenge_video.mp4')
 
 ALPHA = 0.3
-LEFT_LINE = Line(ALPHA,
-                 X_M_PER_PIX,
-                 Y_M_PER_PIX)
-RIGHT_LINE = Line(ALPHA,
-                  X_M_PER_PIX,
-                  Y_M_PER_PIX)
+LEFT_LINE = Line(X_M_PER_PIX,
+                 Y_M_PER_PIX,
+                 ALPHA)
+RIGHT_LINE = Line(X_M_PER_PIX,
+                  Y_M_PER_PIX,
+                  ALPHA)
 
 def main():
     """ Main data processing pipeline
