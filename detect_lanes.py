@@ -48,7 +48,8 @@ def find_window_centroids(warped, window_width, window_height, margin):
 
 def fit_lines(binary_warped,
 	          left_line,
-	          right_line):
+	          right_line,
+	          frame_number):
     # Assuming you have created a warped binary image called "binary_warped"
     # Take a histogram of the bottom half of the image
     histogram = np.sum(binary_warped[np.floor(binary_warped.shape[0]/2).astype(np.int):,:], axis=0)
@@ -125,12 +126,14 @@ def fit_lines(binary_warped,
                      right_fit,
                      leftx,
                      lefty,
-                     binary_warped.shape)
+                     binary_warped.shape,
+                     frame_number)
     right_line.update(right_fit,
                       left_fit,
                       rightx,
                       righty,
-                      binary_warped.shape)
+                      binary_warped.shape,
+                      frame_number)
 
     return
 
@@ -138,7 +141,8 @@ def visualise_lanes(plot_image,
                     binary_warped, 
                     left_line,
                     right_line,
-                    Minv):
+                    Minv,
+                    mtx):
     # Create an image to draw the lines on
     warp_zero = np.zeros_like(binary_warped).astype(np.uint8)
     color_warp = np.dstack((warp_zero, warp_zero, warp_zero))
@@ -163,15 +167,22 @@ def visualise_lanes(plot_image,
     # Combine the result with the original image
     result = cv2.addWeighted(plot_image, 1, newwarp, 0.3, 0)
 
-    position = 0.5 * (left_fitx[-1] + right_fitx[-1] - binary_warped.shape[1])
+    unwarped_center = 0.5 * binary_warped.shape[1], binary_warped.shape[0]
+    warped_center = (mtx[0][0]*unwarped_center[0] + mtx[0][1]*unwarped_center[1] + mtx[0][2]) / \
+                    (mtx[2][0]*unwarped_center[0] + mtx[2][1]*unwarped_center[1] + mtx[2][2])
+
+    position = 0.5 * (left_fitx[-1] + right_fitx[-1]) - warped_center
     position = position * left_line.x_m_per_pix
 
-    if position > 0:
+    if position < 0:
     	relative_position = "right"
     else:
     	relative_position = "left"
     position_string = "Position: {0: 8.3f} m {1} of center".format(np.abs(position), relative_position)
-    curvature = 0.5 * (left_line.radius_of_curvature + right_line.radius_of_curvature)
+    if left_line.radius_of_curvature is not None and right_line.radius_of_curvature is not None:
+    	curvature = 0.5 * (left_line.radius_of_curvature + right_line.radius_of_curvature)
+    else:
+    	curvature = 0.
 
     font = cv2.FONT_HERSHEY_SIMPLEX
     result = cv2.putText(result,

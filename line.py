@@ -18,7 +18,7 @@ class Line():
         # Curvertaure tolerance in m
         self.curvature_tolerance = 10.
         # Gradient tolerance in m/m
-        self.gradient_tolerance = 5.
+        self.gradient_tolerance = 1.
         # Separation tolerance
         self.max_separation = 750.
         self.min_separation = 250.
@@ -51,7 +51,8 @@ class Line():
                other_line,
                allx,
                ally,
-               image_shape):
+               image_shape,
+               frame_number):
         self.allx = allx
         self.ally = ally
 
@@ -60,8 +61,9 @@ class Line():
 
         if new_fit is not None:
             self.current_fit = new_fit
-            self.radius_of_curvature = self.calculate_curvature(y_eval,
-                                                                new_fit)
+            new_radius_of_curvature = self.calculate_curvature(y_eval,
+                                                               new_fit)
+
             other_curvature = self.calculate_curvature(y_eval,
                                                        other_line)
 
@@ -78,12 +80,13 @@ class Line():
             # Sanity Checks
             line_is_sane = True
             # Check for similar radius
-            if np.abs(self.radius_of_curvature - other_curvature) / self.radius_of_curvature > self.curvature_tolerance:
+            if np.abs(new_radius_of_curvature - other_curvature) / new_radius_of_curvature > self.curvature_tolerance:
                 line_is_sane = False
                 # print("Not curvature {0} || {1}".format(self.radius_of_curvature,
                 #                                            other_curvature))
             # Check if lines are parallel
-            if np.abs(self.gradient - other_gradient) / self.gradient > self.gradient_tolerance:
+            if np.abs(self.gradient - other_gradient) / self.gradient > self.gradient_tolerance or \
+               np.sign(self.gradient) != np.sign(other_gradient):
                 line_is_sane = False
                 # print("Not parallel {0} || {1}".format(self.gradient,
                 #                                            other_gradient))
@@ -102,10 +105,13 @@ class Line():
                 # self.best_fit = self.alpha * new_fit + (1.-self.alpha)*self.best_fit
                 self.last_n_fits.append(new_fit)
                 self.best_fit = np.mean(self.last_n_fits, 0)
-            # else:
-                # print("Not sane {0} || {1}".format(self.radius_of_curvature,
-                #                                            other_curvature))
-
+                # Only update radius every so many frames
+                if frame_number % 5 == 0:
+                    # Used averaged curves to calculate radius
+                    if self.radius_of_curvature is None:
+                        self.radius_of_curvature = self.calculate_curvature(y_eval)
+                    else:
+                        self.radius_of_curvature = self.alpha * self.calculate_curvature(y_eval) + (1.-self.alpha)*self.radius_of_curvature
         else:
             self.detected = False
 
@@ -118,8 +124,11 @@ class Line():
         if line_fit is None:
             line_fit = self.best_fit
 
-        # Calculate the gradient of the curve closest to car
-        curve_gradient = 2 * line_fit[0] * y_eval + line_fit[1]
+        try:
+            # Calculate the gradient of the curve closest to car
+            curve_gradient = 2 * line_fit[0] * y_eval + line_fit[1]
+        except:
+            return 0.
 
         return curve_gradient
 
@@ -132,9 +141,16 @@ class Line():
             line_fit = self.best_fit
 
         # Calculate the new radii of curvature
-        curve_radius = ((1 + (2*line_fit[0]*self.x_m_per_pix/self.y_m_per_pix**2*y_eval*self.y_m_per_pix \
-                              + line_fit[1]*self.x_m_per_pix/self.y_m_per_pix)**2)**1.5) \
-                           / np.abs(2*line_fit[0]*self.x_m_per_pix/self.y_m_per_pix**2)
+        try:
+            curve_radius = ((1 + (2*line_fit[0]*self.x_m_per_pix/self.y_m_per_pix**2*y_eval*self.y_m_per_pix \
+                               + line_fit[1]*self.x_m_per_pix/self.y_m_per_pix)**2)**1.5) \
+                             / np.abs(2*line_fit[0]*self.x_m_per_pix/self.y_m_per_pix**2)
+        except:
+            return 0.
+        # if self.radius_of_curvature is None:
+        #     self.radius_of_curvature = curve_radius
+        # else:
+        #     self.radius_of_curvature = self.alpha*curve_radius + (1 - self.alpha)*self.radius_of_curvature
 
         return curve_radius
 
@@ -144,7 +160,10 @@ class Line():
         if line_fit is None:
             line_fit = self.best_fit
 
-        base_pos = line_fit[0]*y_eval**2 + line_fit[1]*y_eval + line_fit[2]
+        try:
+            base_pos = line_fit[0]*y_eval**2 + line_fit[1]*y_eval + line_fit[2]
+        except:
+            return 0.
 
         return base_pos
 
